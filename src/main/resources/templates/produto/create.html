@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<title>Produto</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+	<style>
+		/* CSS for the alert */
+		#myAlert {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			padding: 10px;
+			background-color: #D5F5E3;
+			border: 1px solid black;
+			z-index: 9999;
+		}
+	</style>
+
+</head>
+
+<body>
+	<div id="myAlert" style="display: none;">This is my alert message!</div>
+
+	<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+		<!-- Brand/logo -->
+		<a class="navbar-brand" href="/">Home</a>
+
+		<!-- Links -->
+		<ul class="navbar-nav">
+			<li class="nav-item">
+				<a class="nav-link" href="/produto/listar">Produtos</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="/fornecedor/listar">Fornecedor</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="/categoria/listar">Categoria</a>
+			</li>
+		</ul>
+	</nav>
+	<h2>Criar produtos</h2>
+	<div class="container">
+
+		<ul id="erros">
+			
+		</ul>
+
+
+		<form method="post" id="frmProduto" action="/produto/create">
+			<!--<label for="id">Id:</label>
+			<input type="text" id="id" name="id" > -->
+			<br>
+			<label for="nome">Nome:</label>
+			<input type="nome" id="nome" name="nome">
+
+			<br>
+			<label for="idCategoria">Categoria:</label>
+			<select name="idCategoria" id="idCategoria">
+				<option id="0" value="0"> Selecione</option>
+				<option th:each="option : ${categorias}" th:value="${option.getId()}" th:text="${option.getNome()}">
+			</select>
+			<br>
+
+			<button type="submit">Register</button>
+
+		</form>
+		<input type="button" onclick="salvar()" value="Enviar via javascript" />
+
+	</div>
+</body>
+
+<tr th:each="produto : ${produtos}">
+	<td th:text="${produto.getId()}">ID</td>
+	<td th:text="${produto.getNome()}">valor</td>
+</tr>
+<script>
+	async function showAlert() {
+
+	}
+	function recuperarCategoria() {
+		fetch("/produto/categoria")
+			.then(response => response.json())
+			.then(data => mostrarResultado(data))
+			.catch(error => console.error(error));
+	}
+
+	function mostrarResultado(data) {
+		alert(data.nome);
+	}
+
+	async function salvarTeste() {
+		const form = document.getElementById('frmProduto');
+		const formData = new FormData(form); // create FormData object
+		const jsonBody = JSON.stringify(Object.fromEntries(formData.entries())); // convert FormData to JSON string
+
+		fetch('/produto/create-from', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: jsonBody
+		})
+			.then(response => {
+				if (!response.ok) {
+					return response.text().then(body => {
+						throw new Error(`${response.status}: ${body}`);
+					});
+				}
+				return response.json();
+			})
+			.then(data => {
+				console.log(data);
+				redirecionar();
+
+			})
+			.catch(error => {
+				console.log(error);
+				// handle error
+				if (error.message === '404') {
+					// do something specific for a 404 error
+				}
+			});
+	}
+
+	async function redirecionar() {
+		var alert = document.getElementById("myAlert");
+		alert.style.display = "block";
+		await new Promise(r => setTimeout(r, 2000));
+		alert.style.display = "none";
+		window.location.href = "/produto/listar";
+
+	}
+	
+	let status; 
+	
+	function salvar(){
+		const form = document.getElementById('frmProduto');
+		const formData = new FormData(form); // create FormData object
+		const jsonBody = JSON.stringify(Object.fromEntries(formData.entries())); 
+		var myHeaders = new Headers();
+		myHeaders.append("Content-Type", "application/json");
+		
+		var requestOptions = {
+		  method: 'POST',
+		  headers: myHeaders,
+		  body: jsonBody,
+		  redirect: 'follow'
+		};
+		
+		fetch("http://localhost:8080/produto/create-from", requestOptions)
+		  .then(response => {
+			  status = response
+		  	  return response.json()
+		  })
+		  .then(result => tratarRedirect(result, status))
+		  .catch(error => console.log('error', error));
+	}
+	
+	async function tratarRedirect(data, response){
+		if (response.ok) {
+			let alert = document.getElementById("myAlert");
+			alert.innerHTML = 'Produto cadastrado com sucesso!';
+			alert.style.display = "block";
+			await new Promise(r => setTimeout(r, 2000));
+			alert.style.display = "none";
+			window.location.href = "/produto/listar";
+			return;
+		}
+		let erros = document.getElementById('erros');
+		erros.innerHTML = '';
+		let itemList = '';
+		
+		if(data.hasOwnProperty('nome'))
+			itemList = `<li class="text-danger">${data.nome}</li>`;
+			
+		if(data.hasOwnProperty('idCategoria'))
+			itemList += `<li class="text-danger">${data.idCategoria}</li>`;
+			
+		erros.innerHTML = itemList;	
+	}
+	
+
+</script>
+
+</html>
